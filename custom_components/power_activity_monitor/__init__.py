@@ -7,20 +7,26 @@ import logging
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+import voluptuous as vol
+
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_HOURS,
     CONF_NOTIFY_ENTITY,
     CONF_REPORT_TIME,
     DEFAULT_REPORT_TIME,
     DOMAIN,
     HEARTBEAT_SECONDS,
+    SERVICE_ADJUST_TIME,
 )
-from .model import add_gap, empty_state, period_keys, previous_week_key, week_key
+from .model import adjust_time, add_gap, empty_state, period_keys, previous_week_key
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
@@ -79,6 +85,16 @@ class ActivityMonitor:
                 await self._send_weekly_if_due(now)
             except Exception:
                 _LOGGER.exception("Power activity heartbeat failed")
+
+    async def async_adjust_time(self, hours: float) -> None:
+        """Apply and persist a manual correction to the current periods."""
+        async with self._heartbeat_lock:
+            try:
+                adjust_time(self.state, dt_util.utcnow(), self.zone, hours * 3600)
+            except ValueError as err:
+                raise ServiceValidationError(str(err)) from err
+            await self.store.async_save(self.state)
+            self._notify_listeners()
 
     @callback
     def subscribe(self, listener):
@@ -160,6 +176,26 @@ class ActivityMonitor:
         keys = period_keys(dt_util.utcnow().astimezone(self.zone))
         index = {"weeks": 0, "months": 1, "years": 2}[period]
         return self.state[period].get(keys[index], 0)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the manual time adjustment action."""
+
+    async def handle_adjust_time(call: ServiceCall) -> None:
+        entries = hass.config_entries.async_entries(DOMAIN)
+        if not entries or entries[0].state is not ConfigEntryState.LOADED:
+            raise ServiceValidationError("Power activity monitor is not loaded")
+        await entries[0].runtime_data.async_adjust_time(call.data[ATTR_HOURS])
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADJUST_TIME,
+        handle_adjust_time,
+        schema=vol.Schema(
+            {vol.Required(ATTR_HOURS): vol.All(vol.Coerce(float), vol.Range(min=-100000, max=100000))}
+        ),
+    )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -44,7 +44,7 @@ DESCRIPTIONS = (
         translation_key="all_time",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.HOURS,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.TOTAL,
     ),
     SensorEntityDescription(
         key="last_activity",

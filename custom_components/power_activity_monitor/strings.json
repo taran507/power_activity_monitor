@@ -36,5 +36,17 @@
       "last_gap": { "name": "Last downtime" },
       "outage_count": { "name": "Outage count" }
     }
+  },
+  "services": {
+    "adjust_time": {
+      "name": "Adjust downtime",
+      "description": "Add or subtract downtime in the current week, month, year, and all-time total. Does not change the outage count.",
+      "fields": {
+        "hours": {
+          "name": "Hours",
+          "description": "Positive hours add downtime; negative hours subtract it."
+        }
+      }
+    }
   }
 }

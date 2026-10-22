@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -17,6 +18,23 @@ def period_keys(local: datetime) -> tuple[str, str, str]:
 
 def previous_week_key(local: datetime) -> str:
     return week_key(local - timedelta(days=7))
+
+
+def adjust_time(data: dict, now: datetime, zone: ZoneInfo, seconds: float) -> None:
+    """Adjust the current calendar periods and lifetime total together."""
+    if not math.isfinite(seconds) or seconds == 0:
+        raise ValueError("adjustment must be a finite, non-zero duration")
+
+    keys = period_keys(now.astimezone(zone))
+    changes = tuple(zip(("weeks", "months", "years"), keys))
+    if data["total_seconds"] + seconds < 0 or any(
+        data[bucket].get(key, 0) + seconds < 0 for bucket, key in changes
+    ):
+        raise ValueError("adjustment exceeds recorded downtime in the current period")
+
+    for bucket, key in changes:
+        data[bucket][key] = max(0, data[bucket].get(key, 0) + seconds)
+    data["total_seconds"] = max(0, data["total_seconds"] + seconds)
 
 
 def add_gap(data: dict, start: datetime, end: datetime, zone: ZoneInfo) -> bool:
