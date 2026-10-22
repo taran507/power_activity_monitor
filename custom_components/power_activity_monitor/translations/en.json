@@ -1,0 +1,40 @@
+{
+  "title": "Power Activity Monitor",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Power Activity Monitor",
+        "description": "Estimates host power outages from gaps in Home Assistant activity. A Telegram notify entity can be selected later.",
+        "data": {
+          "notify_entity": "Telegram notify entity",
+          "report_time": "Weekly report time (Monday)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This host is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Notification settings",
+        "data": {
+          "notify_entity": "Telegram notify entity",
+          "report_time": "Weekly report time (Monday)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_week": { "name": "Current week downtime" },
+      "current_month": { "name": "Current month downtime" },
+      "current_year": { "name": "Current year downtime" },
+      "all_time": { "name": "All-time downtime" },
+      "last_activity": { "name": "Last activity" },
+      "last_gap": { "name": "Last downtime" },
+      "outage_count": { "name": "Outage count" }
+    }
+  }
+}

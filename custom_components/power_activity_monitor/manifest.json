@@ -1,0 +1,7 @@
+{
+  "domain": "power_activity_monitor",
+  "name": "Монитор электропитания",
+  "codeowners": [],
+  "config_flow": true,
+  "version": "1.0.0"
+}
